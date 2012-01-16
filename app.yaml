@@ -3,10 +3,27 @@ version: 1
 runtime: python
 api_version: 1
 
+builtins:
+ - datastore_admin: on
+
+inbound_services:
+- mail
+ 
 handlers:
 - url: /favicon\.ico
   static_files: favicon.ico
   upload: favicon\.ico
 
+- url: /static
+  static_dir: static
+
+- url: /test.*
+  script: gaeunit.py
+  login: admin
+  
+- url: /_ah/mail/.+
+  script: paypal_notification_handler.py
+  # login: admin
+
 - url: .*
-  script: main.py
+  script: purser.py
