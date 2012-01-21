@@ -11,7 +11,7 @@ import logging
 import simplejson as json
 
 # Tuk-Tuk imports
-from models import Campaign
+from models import Person, Campaign
 from views import CampaignStatusView
 
 class CampaignStatusController(webapp.RequestHandler):

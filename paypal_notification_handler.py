@@ -21,64 +21,79 @@ class MailHandler(InboundMailHandler):
         for content_type, body in plaintext_bodies:
                 to_parse = body.decode()
                 logging.info(to_parse)
-                                
-        # obtain the donor's name
-        p = re.findall(r"nika [\w]* [\w]* \(", to_parse)
-        p = p[0][5:-2]
-        logging.info(p)
-        name = p
         
-        # obtain the donor's email
-        p = re.findall(r" \([^)]*\). Mo", to_parse)
-        p = p[0][2:-5]
-        logging.info(p)
-        email = p
-        
-        # obtain the donation's amount
-        p = re.findall("ci [0-9]*,[0-9]* PLN", to_parse)
-        p = p[0]
-        p = re.findall("\d", p)
-        p = ''.join(p)
-        logging.info(p)
-        amount = int(p)
-        
-        # obtain the campaign key
-        p = re.findall(r"2012Fund", to_parse)
-        if p:
-            key = "2012Fund"
+        if re.findall("Kod potwierdzenia", to_parse):
+            pass
         else:
-            key = "default"
+            # obtain the donor's name
+            p = re.findall(r"nika [\w]* [\w]* \(", to_parse)
+            p = p[0][5:-2]
+            logging.info(p)
+            name = p
         
-        # process the data
-        campaign = Campaign.get_by_key_name(key)
+            # obtain the donor's email
+            email_unparsed = message.sender
+            email_block = re.findall("([\w\-\.+]+@(\w[\w\-]+\.)+[\w\-]+)", email_unparsed)
+            email = email_block[0][0]
+            logging.info(email)
         
-        if not campaign:
-            # we didn't find the matching campaign, we will have to pull default
+            # obtain the donation's amount
+            p = re.findall("ci [0-9]*,[0-9]* PLN", to_parse)
+            p = p[0]
+            p = re.findall("\d", p)
+            p = ''.join(p)
+            logging.info(p)
+            amount = int(p)
+        
+            # obtain the donation key
+            p = re.findall("cy: [\w]*", to_parse)
+            logging.info(p)
+            p = p[0][4:]
+            p = ''.join(p)
+            logging.info(p)
+            donation_key = p
+        
+            # obtain the campaign key
+            p = re.findall(r"2012Fund", to_parse)
+            if p:
+                key = "2012Fund"
+            else:
+                key = "default"
+        
+            # process the data
             campaign = Campaign.get_by_key_name(key)
+        
             if not campaign:
-                # the default campaign seems to not be there, spawn one
-                campaign = Campaign(key_name = key,
-                                    short_code = key,
-                                    name = "Default fundraising campaign",
-                                    goal = 0,
-                                    starting_from = 0)
-                campaign.put()
+                # we didn't find the matching campaign, we will have to pull default
+                campaign = Campaign.get_by_key_name(key)
+                if not campaign:
+                    # the default campaign seems to not be there, spawn one
+                    campaign = Campaign(key_name = key,
+                                        short_code = key,
+                                        name = "Default fundraising campaign",
+                                        goal = 0,
+                                        starting_from = 0)
+                    campaign.put()
         
-        person = Person.get_by_key_name(email)
+            person = Person.get_by_key_name(email)
         
-        if not person:
-            person = Person(key_name = email,
-                            name = name,
-                            email = email)
-            person.put()
+            if not person:
+                person = Person(key_name = email,
+                                name = name,
+                                email = email)
+                person.put()
         
-        donation = Donation(parent = person,
-                            donor = person,
-                            campaign = campaign,
-                            amount = amount)
-        donation.put()
+            donation = Donation.get_by_key_name(donation_key)
         
-        # time for some channel voodoo?
+            if not donation:
+                donation = Donation(key_name = donation_key,
+                                    parent = person,
+                                    donor = person,
+                                    campaign = campaign,
+                                    amount = amount)
+                donation.put()
+        
+            # time for some channel voodoo?
         
             
 def main():
