@@ -22,20 +22,20 @@ class MailHandler(InboundMailHandler):
                 to_parse = body.decode()
                 logging.info(to_parse)
         
-        if re.findall("Kod potwierdzenia", to_parse):
+        # obtain the donor's email
+        email_unparsed = message.sender
+        email_block = re.findall("([\w\-\.+]+@(\w[\w\-]+\.)+[\w\-]+)", email_unparsed)
+        email = email_block[0][0]
+        logging.info(email)
+        
+        if re.findall("Kod potwierdzenia", to_parse) or re.findall("service@paypal.pl", email):
             pass
-        else:
+        else:            
             # obtain the donor's name
             p = re.findall(r"nika [\w]* [\w]* \(", to_parse)
             p = p[0][5:-2]
             logging.info(p)
             name = p
-        
-            # obtain the donor's email
-            email_unparsed = message.sender
-            email_block = re.findall("([\w\-\.+]+@(\w[\w\-]+\.)+[\w\-]+)", email_unparsed)
-            email = email_block[0][0]
-            logging.info(email)
         
             # obtain the donation's amount
             p = re.findall("ci [0-9]*,[0-9]* PLN", to_parse)
